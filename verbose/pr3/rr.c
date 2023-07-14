@@ -1,100 +1,117 @@
-#include<stdio.h>
-#include<stdlib.h>
+#include <stdio.h>
+#include <limits.h>
+#include <stdlib.h>
 
-typedef struct process {
-    int Id, AT, BT, CT, TAT, WT, flag; 
-} pro;
-
-pro p[15];
-
-void swap(pro *a, pro *b) {
-    pro temp = *a;
-    *a = *b;
-    *b = temp;
-    return; 
+struct process_struct
+{
+    int pid;
+    int at;
+    int bt;
+    int ct, wt, tat, start_time;
+    int bt_remaining;
+    int visited;
+} ps[100], temp;
+int findmax(int a, int b)
+{
+    return a > b ? a : b;
 }
+void main()
+{
+    int n, index;
+    int current_time = 0;
+    int completed = 0, tq;
+    printf("Enter total number of processes: ");
+    scanf("%d", &n);
+    int queue[100], front = -1, rear = -1;
+    float sum_tat = 0, sum_wt = 0;
 
-void sort(int n) {
-    for(int i = 0; i<n-1; i++) {
-        for(int j=0; j<n-i-1; j++) {
-            if(p[j].AT > p[j+1].AT) {
-                swap(&p[j], &p[j+1]);
+    for (int i = 0; i < n; i++)
+    {
+        printf("\nEnter Process %d AT and BT: ", i);
+        scanf("%d%d", &ps[i].at, &ps[i].bt);
+        ps[i].pid = i;
+        ps[i].visited = 0;
+        ps[i].bt_remaining = ps[i].bt;
+    }
+    printf("\nEnter time quanta: ");
+    scanf("%d", &tq);
+    for (int i = 0; i < n - 1; i++)
+    {
+        for (int j = 0; j < n - i - 1; j++)
+        {
+            if (ps[j].at > ps[j + 1].at)
+            {
+                temp = ps[j];
+                ps[j] = ps[j + 1];
+                ps[j + 1] = temp;
             }
         }
     }
-}
-
-void main() {
-    int n, tempBT[15], total_WT=0, total_TAT=0, quantum;
-    float avg_WT=0, avg_TAT=0;
-    printf("\nEnter the number of processes:\n");
-    scanf("%d", &n);
-    printf("\nEnter the arrival time and burst time of the process:\n");
-    printf("AT BT\n");
-    for(int i=0; i<n; i++) {
-        p[i].Id = (i+1);
-        scanf("%d%d", &p[i].AT, &p[i].BT);
-        tempBT[i] = p[i].BT;
-        p[i].flag = 0;
-    }
-    printf("\nEnter the time quantum:\n");
-    scanf("%d", &quantum);
-    sort(n);
-
-    //A queue is required for demonstrating this algorithm
-    int completed = 0, curIndex, curTime = p[0].AT, *waitQueue, front = 0, rear = 0, cnt=0;
-    waitQueue = (int *)malloc(n*sizeof(int));
-    cnt++;
-    waitQueue[rear] = 0;
-    p[0].flag = 1;
-
-    while (completed != n) {
-        curIndex = waitQueue[front];
-        front = (front+1) % n;
-        if(p[curIndex].BT > quantum) {
-            p[curIndex].BT -= quantum;
-            curTime += quantum;
-            printf("| P%d(%d) %d", p[curIndex].Id, quantum, curTime);
-        } else {
-            curTime += p[curIndex].BT;
-            printf("| P%d(%d) %d", p[curIndex].Id, p[curIndex].BT, curTime);
-            p[curIndex].BT = 0;
+    front = rear = 0;
+    queue[rear] = 0;
+    ps[0].visited = 1;
+    while (completed != n)
+    {
+        index = queue[front];
+        front++;
+        if (ps[index].bt_remaining == ps[index].bt)
+        {
+            current_time = findmax(current_time, ps[index].at);
         }
-        p[curIndex].CT = curTime;
-        cnt--;
-
-        for(int i=0; i<n && p[i].AT <= curTime; i++) {
-            if(i == curIndex || p[i].flag == 1 || p[i].BT == 0) 
-                continue;
-            rear = (rear+1) % n;
-            p[i].flag = 1;
-            waitQueue[rear] = i;
-            cnt++;
+        if (ps[index].bt_remaining - tq > 0)
+        {
+            ps[index].bt_remaining -= tq;
+            current_time += tq;
+            printf("| P%d  %d", ps[index].pid, current_time);
         }
-
-        if(p[curIndex].BT > 0) {
-            rear = (rear+1)%n;
-            waitQueue[rear] = curIndex;
-            cnt++;
-        } else {
+        else
+        {
+            current_time += ps[index].bt_remaining;
+            ps[index].bt_remaining = 0;
             completed++;
+
+            ps[index].ct = current_time;
+            ps[index].tat = ps[index].ct - ps[index].at;
+            ps[index].wt = ps[index].tat - ps[index].bt;
+            printf("| P%d  %d", ps[index].pid, current_time);
+            sum_tat += ps[index].tat;
+            sum_wt += ps[index].wt;
         }
-
+        // selecting next to put into q
+        for (int i = 1; i < n; i++)
+        {
+            if (ps[i].bt_remaining > 0 && ps[i].at <= current_time && ps[i].visited == 0)
+            {
+                queue[++rear] = i;
+                ps[i].visited = 1;
+            }
+        }
+        // if cpu process shd be put into q
+        if (ps[index].bt_remaining > 0)
+        {
+            queue[++rear] = index;
+        }
+        // if q is empty
+        if (front > rear)
+        {
+            for (int i = 1; i < n; i++)
+            {
+                if (ps[i].bt_remaining > 0)
+                {
+                    queue[rear++] = i;
+                    ps[i].visited = 1;
+                    break;
+                }
+            }
+        }
     }
-    for(int i=0; i<n; i++) {
-        p[i].TAT = p[i].CT - p[i].AT;
-        total_TAT += p[i].TAT;
-        p[i].WT = p[i].TAT - tempBT[p[i].Id-1];
-        total_WT += p[i].WT;
+    printf("\nProcess No.\tAT\tCPU Burst Time\tStart Time\tCT\tTAT\tWT\n");
+    for (int i = 0; i < n; i++)
+    {
+        printf("%d\t\t%d\t%d\t\t%d\t\t%d\t%d\t%d\n", i, ps[i].at, ps[i].bt, ps[i].start_time, ps[i].ct, ps[i].tat, ps[i].wt);
     }
-    avg_TAT = (float)total_TAT/n;
-    avg_WT = (float)total_WT/n;
+    printf("\n");
 
-    //Printing the table of processes with details
-    printf("\nPID\tAT\tBT\tCT\tTAT\tWT\n");
-    for(int i=0; i<n; i++) {
-        printf("%d\t%d\t%d\t%d\t%d\t%d\n", p[i].Id, p[i].AT, tempBT[i], p[i].CT, p[i].TAT, p[i].WT);
-    }
-
-    printf("\nAverage TAT = %.2f\nAverage WT = %.2f\n", avg_TAT, avg_WT);
+    printf("\nAverage Turn Around time= %.2f", (float)sum_tat / n);
+    printf("\nAverage Waiting Time= %.2f", (float)sum_wt / n);
 }
