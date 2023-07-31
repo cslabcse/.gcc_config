@@ -1,102 +1,91 @@
-#include<stdio.h>
-#include<limits.h>
-
-struct process_struct
+#include <stdio.h>
+#include <limits.h>
+#include <stdlib.h>
+struct process
 {
-  int pid;
-  int at;
-  int bt;
-  int priority;
-  int ct,wt,tat,start_time;
-}ps[100];
-
+    int pid;
+    int at;
+    int bt;
+    int p;
+    int ct, wt, tat, completed, btr;
+};
+typedef struct process p;
+int tot_tt = 0, tot_wt = 0;
 int main()
 {
     int n;
-    int is_completed[100]={0},is_first_process=1;
-    int bt_remaining[100];
-    int current_time = 0;
-    int completed = 0;
-    printf("Enter total number of processes: ");
-    scanf("%d",&n);    
-    int sum_tat=0,sum_wt=0,sum_rt=0;
+    printf("Enter the Number of Process : ");
+    scanf("%d", &n);
+    int completed = 0, curt = 0;
+    p *a = (p *)calloc(n, sizeof(p));
 
-    for(int i=0;i<n;i++)
+    for (int i = 0; i < n; i++)
     {
-        printf("\nEnter Process %d Arrival Time: ",i);
-        scanf("%d",&ps[i].at);
-        ps[i].pid = i ;
-    }
-    
-    for(int i=0;i<n;i++)
-    {
-        printf("\nEnter Process %d Burst Time: ",i);
-        scanf("%d",&ps[i].bt);
-        bt_remaining[i]=ps[i].bt;
-    }
-    for(int i=0;i<n;i++)
-    {
-        printf("\nEnter Process %d Priority: ",i);
-        scanf("%d",&ps[i].priority);
+        a[i].pid = i + 1;
+        printf("AT of p%d : ", i + 1);
+        scanf("%d", &a[i].at);
+        printf("BT of p%d : ", i + 1);
+        scanf("%d", &a[i].bt);
+        printf("PR of p%d : ", i + 1);
+        scanf("%d", &a[i].p);
+        a[i].completed = 0;
+        a[i].btr = a[i].bt;
     }
 
-    while(completed!=n)
+    while (completed != n)
     {
-        //find process with min. burst time in ready queue at current time
-        int max_index = -1;
-        int maximum = 999;
-        for(int i = 0; i < n; i++) {
-            if(ps[i].at <= current_time && is_completed[i] == 0) {
-                if(ps[i].priority < maximum) {
-                    maximum = ps[i].priority;
-                    max_index = i;
+        int min_id = -1;
+        int min = INT_MAX;
+        for (int i = 0; i < n; i++)
+        {
+            if (a[i].at <= curt && !a[i].completed)
+            {
+                if (a[i].p < min)
+                {
+                    min = a[i].p;
+                    min_id = i;
                 }
-                if(ps[i].priority== maximum) {
-                    if(ps[i].at < ps[max_index].at) {
-                        maximum= ps[i].priority;
-                        max_index = i;
+                if (a[i].p == min)
+                {
+                    if (a[i].at < a[min_id].at)
+                    {
+                        min = a[i].p;
+                        min_id = i;
                     }
                 }
             }
         }
+        if (min_id == -1)
+        {
+            curt++;
+        }
+        else
+        {
+            curt++;
+            a[min_id].btr -= 1;
+            printf("|P%d %d", a[min_id].pid, curt);
+            if (a[min_id].btr == 0)
+            {
+                a[min_id].ct = curt;
+                a[min_id].tat = a[min_id].ct - a[min_id].at;
+                a[min_id].wt = a[min_id].tat - a[min_id].bt;
 
-   // printf("max Index=%d ",max_index);
-    if(max_index==-1)
-    {
-        current_time++;
+                tot_tt += a[min_id].tat;
+                tot_wt += a[min_id].wt;
+
+                completed++;
+                a[min_id].completed = 1;
+            }
+        }
     }
-    else
+
+    printf("\nPID\tAT\tBT\tPR\tWT\tTT\tCT\n");
+    for (int i = 0; i < n; i++)
     {
-       if(bt_remaining[max_index]==ps[max_index].bt)
-           ps[max_index].start_time = current_time;
-
-       bt_remaining[max_index]--;
-       current_time++;
-       printf("| P%d  %d",ps[max_index].pid,current_time);
-       
-       if(bt_remaining[max_index]==0)
-       {
-            ps[max_index].ct = current_time;
-            ps[max_index].tat = ps[max_index].ct - ps[max_index].at;
-            ps[max_index].wt= ps[max_index].tat - ps[max_index].bt;
-            
-            
-            sum_tat +=ps[max_index].tat;
-            sum_wt += ps[max_index].wt;
-            completed++;
-            is_completed[max_index]=1;
-            
-       }
+        printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\n", a[i].pid, a[i].at, a[i].bt, a[i].p, a[i].wt, a[i].tat, a[i].ct);
     }
-  }
-  printf("\nPid\tPriority\tAT\tBurst Time\tCT\tTAT\tWT\n");
-    for(int i=0;i<n;i++)
-     printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",ps[i].pid,ps[i].priority,ps[i].at,ps[i].bt,ps[i].ct,ps[i].tat,ps[i].wt);
+    printf("\nThe Average Total Time is %f\n", ((float)tot_tt / n));
+    printf("\nThe Average Waiting Time is %f\n", ((float)tot_wt / n));
 
-    printf("\n");    
-    
-
-    printf("\nAverage Turn Around time= %f ",(float)sum_tat/n);
-    printf("\nAverage Waiting Time= %f ",(float)sum_wt/n); 
-
+    return 1;
 }
