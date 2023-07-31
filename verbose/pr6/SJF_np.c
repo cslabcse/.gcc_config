@@ -1,92 +1,81 @@
 #include <stdio.h>
 #include <limits.h>
 
-struct process_struct
+struct process
 {
     int pid;
     int at;
     int bt;
-    int ct, wt, tat;
-} ps[100];
-
-int main()
+    int ct, wt, tat, completed;
+};
+typedef struct process p;
+int tot_tt = 0, tot_wt = 0;
+void main()
 {
-
     int n;
-    int is_completed[100] = {0}, is_first_process = 1;
-    int current_time = 0;
-    int completed = 0;
-    printf("Enter total number of processes: ");
+    printf("Enter the Number of Process : ");
     scanf("%d", &n);
-    int sum_tat = 0, sum_wt = 0, sum_rt = 0;
+    int completed = 0, curt = 0;
+    p *a = (p *)calloc(n, sizeof(p));
 
     for (int i = 0; i < n; i++)
     {
-        printf("\nEnter Process %d Arrival Time: ", i);
-        scanf("%d", &ps[i].at);
-        ps[i].pid = i;
-    }
-
-    for (int i = 0; i < n; i++)
-    {
-        printf("\nEnter Process %d Burst Time: ", i);
-        scanf("%d", &ps[i].bt);
+        a[i].pid = i + 1;
+        printf("AT of p%d : ", i + 1);
+        scanf("%d", &a[i].at);
+        printf("BT of p%d : ", i + 1);
+        scanf("%d", &a[i].bt);
+        a[i].completed = 0;
     }
 
     while (completed != n)
     {
-        // find process with min. burst time in ready queue at current time
-        int min_index = -1;
-        int minimum = INT_MAX;
+        int min_id = -1;
+        int min = INT_MAX;
         for (int i = 0; i < n; i++)
         {
-            if (ps[i].at <= current_time && is_completed[i] == 0)
+            if (a[i].at <= curt && !a[i].completed)
             {
-                if (ps[i].bt < minimum)
+                if (a[i].bt < min)
                 {
-                    minimum = ps[i].bt;
-                    min_index = i;
+                    min = a[i].bt;
+                    min_id = i;
                 }
-                if (ps[i].bt == minimum)
+                if (a[i].bt == min)
                 {
-                    if (ps[i].at < ps[min_index].at)
+                    if (a[i].at < a[min_id].at)
                     {
-                        minimum = ps[i].bt;
-                        min_index = i;
+                        min = a[i].bt;
+                        min_id = i;
                     }
                 }
             }
         }
-
-        if (min_index == -1)
+        if (min_id == -1)
         {
-            current_time++;
+            curt++;
         }
         else
         {
-            current_time += ps[min_index].bt;
-            ps[min_index].ct = current_time;
-            ps[min_index].tat = ps[min_index].ct - ps[min_index].at;
-            ps[min_index].wt = ps[min_index].tat - ps[min_index].bt;
+            curt += min;
+            a[min_id].ct = curt;
+            a[min_id].tat = a[min_id].ct - a[min_id].at;
+            a[min_id].wt = a[min_id].tat - a[min_id].bt;
 
-            sum_tat += ps[min_index].tat;
-            sum_wt += ps[min_index].wt;
+            tot_tt += a[min_id].tat;
+            tot_wt += a[min_id].wt;
 
             completed++;
-            is_completed[min_index] = 1;
-            current_time = ps[min_index].ct;
-            is_first_process = 0;
-            printf("| P%d  %d", ps[min_index].pid, current_time);
+            a[min_id].completed = 1;
+            printf("|P%d %d", a[min_id].pid, a[min_id].ct);
         }
     }
 
-    // Output
-    printf("\nProcess No.\tAT\tCPU Burst Time\tCT\tTAT\tWT\n");
+    printf("\nPID\tAT\tBT\tWT\tTT\tCT\n");
     for (int i = 0; i < n; i++)
-        printf("%d\t\t%d\t%d\t\t%d\t%d\t%d\n", ps[i].pid, ps[i].at, ps[i].bt, ps[i].ct, ps[i].tat, ps[i].wt);
-
-    printf("\n");
-
-    printf("\nAverage Turn Around time= %f ", (float)sum_tat / n);
-    printf("\nAverage Waiting Time= %f ", (float)sum_wt / n);
+    {
+        printf("%d\t%d\t%d\t%d\t%d\t%d\n", a[i].pid, a[i].at, a[i].bt, a[i].wt, a[i].tat, a[i].ct);
+    }
+    printf("\nThe Average Total Time is %f\n", ((float)tot_tt / n));
+    printf("\nThe Average Waiting Time is %f\n", ((float)tot_wt / n));
 }
